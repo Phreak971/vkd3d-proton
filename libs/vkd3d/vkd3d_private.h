@@ -4358,6 +4358,11 @@ static inline uint8_t *vkd3d_bindless_state_get_null_descriptor_payload(struct v
     return bindless_state->null_descriptor_payloads[index - 2];
 }
 
+/* Xbox Series formats, named in Microsoft's DirectXTex. */
+#define XBOX_DXGI_FORMAT_D16_UNORM_S8_UINT ((DXGI_FORMAT)118)
+#define XBOX_DXGI_FORMAT_R16_UNORM_X8_TYPELESS ((DXGI_FORMAT)119)
+#define XBOX_DXGI_FORMAT_X16_TYPELESS_G8_UINT ((DXGI_FORMAT)120)
+
 enum vkd3d_format_type
 {
     VKD3D_FORMAT_TYPE_OTHER,
@@ -6480,7 +6485,8 @@ static inline void vkd3d_get_depth_bias_representation(VkDepthBiasRepresentation
     /* Checking only strongly typed formats should work here since we take the
      * format from the DSV or PSO desc, where typeless formats are not allowed */
     if (device->device_info.depth_bias_control_features.leastRepresentableValueForceUnormRepresentation &&
-            (dsv_format == DXGI_FORMAT_D16_UNORM || dsv_format == DXGI_FORMAT_D24_UNORM_S8_UINT))
+            (dsv_format == DXGI_FORMAT_D16_UNORM || dsv_format == DXGI_FORMAT_D24_UNORM_S8_UINT ||
+            dsv_format == XBOX_DXGI_FORMAT_D16_UNORM_S8_UINT))
         info->depthBiasRepresentation = VK_DEPTH_BIAS_REPRESENTATION_LEAST_REPRESENTABLE_VALUE_FORCE_UNORM_EXT;
 }
 

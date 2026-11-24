@@ -152,6 +152,12 @@ static const struct vkd3d_format_footprint depth_stencil_copy_footprints[] =
     { DXGI_FORMAT_R8_TYPELESS, 1, 1, 1, 0, 0 },
 };
 
+static const struct vkd3d_format_footprint d16s8_copy_footprints[] =
+{
+    { DXGI_FORMAT_R16_TYPELESS, 1, 1, 2, 0, 0 },
+    { DXGI_FORMAT_R8_TYPELESS, 1, 1, 1, 0, 0 },
+};
+
 /* Each depth/stencil format is only compatible with itself in Vulkan. */
 static const struct vkd3d_format vkd3d_depth_stencil_formats[] =
 {
@@ -165,6 +171,9 @@ static const struct vkd3d_format vkd3d_depth_stencil_formats[] =
     {DXGI_FORMAT_D24_UNORM_S8_UINT,        VK_FORMAT_D24_UNORM_S8_UINT,  4,  1, 1, 1, DEPTH_STENCIL, 2, 0, false, depth_stencil_copy_footprints},
     {DXGI_FORMAT_R24_UNORM_X8_TYPELESS,    VK_FORMAT_D24_UNORM_S8_UINT,  4,  1, 1, 1, DEPTH,         2},
     {DXGI_FORMAT_X24_TYPELESS_G8_UINT,     VK_FORMAT_D24_UNORM_S8_UINT,  4,  1, 1, 1, STENCIL,       2},
+    {XBOX_DXGI_FORMAT_D16_UNORM_S8_UINT,   VK_FORMAT_D16_UNORM_S8_UINT,  4,  1, 1, 1, DEPTH_STENCIL, 2, 0, false, d16s8_copy_footprints},
+    {XBOX_DXGI_FORMAT_R16_UNORM_X8_TYPELESS, VK_FORMAT_D16_UNORM_S8_UINT, 4, 1, 1, 1, DEPTH,         2},
+    {XBOX_DXGI_FORMAT_X16_TYPELESS_G8_UINT, VK_FORMAT_D16_UNORM_S8_UINT, 4,  1, 1, 1, STENCIL,       2},
     {DXGI_FORMAT_R16_TYPELESS,             VK_FORMAT_D16_UNORM,          2,  1, 1, 1, DEPTH,         1, TYPELESS},
     {DXGI_FORMAT_R16_UNORM,                VK_FORMAT_D16_UNORM,          2,  1, 1, 1, DEPTH,         1},
 };
@@ -399,6 +408,19 @@ dxgi_format_compatibility_list[] =
             {DXGI_FORMAT_UNKNOWN},
             DXGI_FORMAT_UNKNOWN,
             DXGI_FORMAT_R24G8_TYPELESS},
+
+    {XBOX_DXGI_FORMAT_D16_UNORM_S8_UINT,
+            {DXGI_FORMAT_UNKNOWN},
+            DXGI_FORMAT_UNKNOWN,
+            XBOX_DXGI_FORMAT_D16_UNORM_S8_UINT},
+    {XBOX_DXGI_FORMAT_R16_UNORM_X8_TYPELESS,
+            {DXGI_FORMAT_UNKNOWN},
+            DXGI_FORMAT_UNKNOWN,
+            XBOX_DXGI_FORMAT_D16_UNORM_S8_UINT},
+    {XBOX_DXGI_FORMAT_X16_TYPELESS_G8_UINT,
+            {DXGI_FORMAT_UNKNOWN},
+            DXGI_FORMAT_UNKNOWN,
+            XBOX_DXGI_FORMAT_D16_UNORM_S8_UINT},
 
     {DXGI_FORMAT_R16_TYPELESS,
             {DXGI_FORMAT_R16_FLOAT, DXGI_FORMAT_R16_UINT, DXGI_FORMAT_R16_SINT, DXGI_FORMAT_R16_UNORM, DXGI_FORMAT_R16_SNORM},
@@ -1168,6 +1190,8 @@ bool is_valid_resource_state(D3D12_RESOURCE_STATES state)
 bool is_valid_format(DXGI_FORMAT dxgi_format)
 {
     if (dxgi_format >= DXGI_FORMAT_UNKNOWN && dxgi_format <= DXGI_FORMAT_B4G4R4A4_UNORM)
+        return true;
+    if (dxgi_format >= XBOX_DXGI_FORMAT_D16_UNORM_S8_UINT && dxgi_format <= XBOX_DXGI_FORMAT_X16_TYPELESS_G8_UINT)
         return true;
     if (dxgi_format >= DXGI_FORMAT_P208 && dxgi_format <= DXGI_FORMAT_A4B4G4R4_UNORM)
         return true;

@@ -1903,6 +1903,7 @@ static void vkd3d_physical_device_info_init_maint10(struct vkd3d_physical_device
         VkImageAspectFlags aspect;
     } formats[] = {
         { VK_FORMAT_D16_UNORM, VK_IMAGE_ASPECT_DEPTH_BIT },
+        { VK_FORMAT_D16_UNORM_S8_UINT, VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT },
         { VK_FORMAT_D24_UNORM_S8_UINT, VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT },
         { VK_FORMAT_X8_D24_UNORM_PACK32, VK_IMAGE_ASPECT_DEPTH_BIT },
         { VK_FORMAT_D32_SFLOAT, VK_IMAGE_ASPECT_DEPTH_BIT },
