@@ -1175,7 +1175,30 @@ static HRESULT STDMETHODCALLTYPE d3d12_neurton_device_OpenHeapFromVkMemory(d3d12
     return return_interface(&object->ID3D12Heap_iface, &IID_ID3D12Heap, riid, heap);
 }
 
-CONST_VTBL struct ID3D12DeviceNeurtonVtbl d3d12_neurton_device_vtbl =
+static HRESULT STDMETHODCALLTYPE d3d12_neurton_device_CreateBufferOnBuffer(d3d12_neurton_device_iface *iface,
+        ID3D12Resource *parent, UINT64 offset, const D3D12_RESOURCE_DESC *desc, REFIID riid, void **resource)
+{
+    struct d3d12_device *device = d3d12_device_from_ID3D12DeviceNeurton(iface);
+    struct d3d12_resource *object;
+    D3D12_RESOURCE_DESC1 desc1;
+    HRESULT hr;
+
+    TRACE("iface %p, parent %p, offset %#"PRIx64", desc %p, riid %s, resource %p.\n",
+            iface, parent, offset, desc, debugstr_guid(riid), resource);
+
+    if (!parent || !desc || !resource)
+        return E_INVALIDARG;
+
+    *resource = NULL;
+    d3d12_resource_promote_desc(desc, &desc1);
+
+    if (FAILED(hr = d3d12_resource_create_on_buffer(device, &desc1, impl_from_ID3D12Resource(parent), offset, &object)))
+        return hr;
+
+    return return_interface(&object->ID3D12Resource_iface, &IID_ID3D12Resource, riid, resource);
+}
+
+CONST_VTBL struct ID3D12DeviceNeurton1Vtbl d3d12_neurton_device_vtbl =
 {
     /* IUnknown methods */
     d3d12_neurton_device_QueryInterface,
@@ -1184,5 +1207,8 @@ CONST_VTBL struct ID3D12DeviceNeurtonVtbl d3d12_neurton_device_vtbl =
 
     /* ID3D12DeviceNeurton methods */
     d3d12_neurton_device_OpenHeapFromVkMemory,
+
+    /* ID3D12DeviceNeurton1 methods */
+    d3d12_neurton_device_CreateBufferOnBuffer,
 };
 

@@ -4124,6 +4124,36 @@ static void d3d12_resource_tag_debug_name(struct d3d12_resource *resource,
         vkd3d_set_vk_object_name(device, (uint64_t)resource->res.vk_buffer, VK_OBJECT_TYPE_BUFFER, name_buffer);
 }
 
+HRESULT d3d12_resource_create_on_buffer(struct d3d12_device *device, const D3D12_RESOURCE_DESC1 *desc,
+        const struct d3d12_resource *parent, UINT64 offset, struct d3d12_resource **resource)
+{
+    D3D12_HEAP_PROPERTIES heap_properties;
+    struct d3d12_resource *object;
+    HRESULT hr;
+
+    if (desc->Dimension != D3D12_RESOURCE_DIMENSION_BUFFER || !d3d12_resource_is_buffer(parent) ||
+            offset > parent->desc.Width || desc->Width > parent->desc.Width - offset)
+        return E_INVALIDARG;
+
+    memset(&heap_properties, 0, sizeof(heap_properties));
+    heap_properties.Type = D3D12_HEAP_TYPE_DEFAULT;
+
+    if (FAILED(hr = d3d12_resource_create(device, VKD3D_RESOURCE_PLACED, desc, &heap_properties,
+            D3D12_HEAP_FLAG_ALLOW_ONLY_BUFFERS | D3D12_HEAP_FLAG_CREATE_NOT_ZEROED, D3D12_RESOURCE_STATE_COMMON,
+            NULL, 0, NULL, &object)))
+        return hr;
+
+    object->mem.offset = parent->mem.offset + offset;
+    object->mem.resource.vk_buffer = parent->res.vk_buffer;
+    object->mem.resource.va = parent->res.va + offset;
+    object->mem.resource.size = desc->Width;
+    object->res.vk_buffer = object->mem.resource.vk_buffer;
+    object->res.va = object->mem.resource.va;
+
+    *resource = object;
+    return S_OK;
+}
+
 HRESULT d3d12_resource_create_borrowed(struct d3d12_device *device, const D3D12_RESOURCE_DESC1 *desc,
         UINT64 vk_handle, struct d3d12_resource **resource)
 {

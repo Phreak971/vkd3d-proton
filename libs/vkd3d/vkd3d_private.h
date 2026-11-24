@@ -1225,6 +1225,8 @@ VkImageLayout vk_image_layout_from_d3d12_resource_state(
         struct d3d12_command_list *list, const struct d3d12_resource *resource, D3D12_RESOURCE_STATES state);
 UINT d3d12_plane_index_from_vk_aspect(VkImageAspectFlagBits aspect);
 
+HRESULT d3d12_resource_create_on_buffer(struct d3d12_device *device, const D3D12_RESOURCE_DESC1 *desc,
+        const struct d3d12_resource *parent, UINT64 offset, struct d3d12_resource **resource);
 HRESULT d3d12_resource_create_borrowed(struct d3d12_device *device, const D3D12_RESOURCE_DESC1 *desc,
         UINT64 vk_handle, struct d3d12_resource **resource);
 HRESULT d3d12_resource_create_committed(struct d3d12_device *device, const D3D12_RESOURCE_DESC1 *desc,
@@ -5202,7 +5204,7 @@ typedef ID3D12DeviceExt2 d3d12_device_vkd3d_ext_iface;
 
 /* ID3D12DXVKInteropDevice */
 typedef ID3D12DXVKInteropDevice3 d3d12_dxvk_interop_device_iface;
-typedef ID3D12DeviceNeurton d3d12_neurton_device_iface;
+typedef ID3D12DeviceNeurton1 d3d12_neurton_device_iface;
 
 /* ID3DLowLatencyDevice */
 typedef ID3DLowLatencyDevice d3d_low_latency_device_iface;

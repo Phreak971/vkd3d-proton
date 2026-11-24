@@ -207,3 +207,16 @@ interface ID3D12DeviceNeurton : IUnknown
             REFIID riid, void **heap);
 }
 
+[
+    uuid(2e8d6b53-94a7-4c1f-b0e2-71c9f5a3d846),
+    object,
+    local,
+    pointer_default(unique)
+]
+interface ID3D12DeviceNeurton1 : ID3D12DeviceNeurton
+{
+    /* A buffer over part of another buffer, at any offset. The caller keeps the parent alive. */
+    HRESULT CreateBufferOnBuffer(ID3D12Resource *parent, UINT64 offset, const D3D12_RESOURCE_DESC *desc,
+            REFIID riid, void **resource);
+}
+
