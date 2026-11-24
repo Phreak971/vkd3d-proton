@@ -22,10 +22,12 @@
     typedef struct VkCuFunctionNVX_T *VkCuFunctionNVX;
     typedef struct VkCuModuleNVX_T *VkCuModuleNVX;
     typedef struct VkSurfaceKHR_T *VkSurfaceKHR;
+    typedef struct VkDeviceMemory_T *VkDeviceMemory;
 #else
     typedef UINT64 VkCuFunctionNVX;
     typedef UINT64 VkCuModuleNVX;
     typedef UINT64 VkSurfaceKHR;
+    typedef UINT64 VkDeviceMemory;
 #endif 
 
 typedef struct VkPhysicalDeviceFeatures2 VkPhysicalDeviceFeatures2;

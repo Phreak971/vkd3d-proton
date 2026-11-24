@@ -748,6 +748,8 @@ enum vkd3d_allocation_flag
      * and we do not consume space in the VA map. */
     VKD3D_ALLOCATION_FLAG_INTERNAL_SCRATCH  = (1u << 6),
     VKD3D_ALLOCATION_FLAG_ALLOW_IMAGE_SUBALLOCATION  = (1u << 7),
+    /* The VkDeviceMemory belongs to the caller: never freed or cleared. */
+    VKD3D_ALLOCATION_FLAG_EXTERNAL_MEMORY  = (1u << 8),
 };
 
 #define VKD3D_MEMORY_CHUNK_SIZE (VKD3D_VA_BLOCK_SIZE * 8)
@@ -762,6 +764,8 @@ struct vkd3d_allocate_memory_info
     D3D12_HEAP_PROPERTIES heap_properties;
     D3D12_HEAP_FLAGS heap_flags;
     void *host_ptr;
+    VkDeviceMemory external_memory;
+    uint32_t external_memory_type;
     const void *pNext;
     uint32_t flags;
     VkBufferUsageFlags2KHR explicit_global_buffer_usage;
@@ -773,6 +777,8 @@ struct vkd3d_allocate_heap_memory_info
 {
     D3D12_HEAP_DESC heap_desc;
     void *host_ptr;
+    VkDeviceMemory external_memory;
+    uint32_t external_memory_type;
     uint32_t extra_allocation_flags;
     float vk_memory_priority;
     VkBufferUsageFlags2KHR explicit_global_buffer_usage;
@@ -1004,6 +1010,8 @@ struct d3d12_heap
 
 HRESULT d3d12_heap_create(struct d3d12_device *device, const D3D12_HEAP_DESC *desc,
         void *host_address, struct d3d12_heap **heap);
+HRESULT d3d12_heap_create_from_vk_memory(struct d3d12_device *device, const D3D12_HEAP_DESC *desc,
+        VkDeviceMemory memory, uint32_t memory_type, void *cpu_address, struct d3d12_heap **heap);
 HRESULT d3d12_device_validate_custom_heap_type(struct d3d12_device *device,
         const D3D12_HEAP_PROPERTIES *heap_properties);
 
@@ -5194,6 +5202,7 @@ typedef ID3D12DeviceExt2 d3d12_device_vkd3d_ext_iface;
 
 /* ID3D12DXVKInteropDevice */
 typedef ID3D12DXVKInteropDevice3 d3d12_dxvk_interop_device_iface;
+typedef ID3D12DeviceNeurton d3d12_neurton_device_iface;
 
 /* ID3DLowLatencyDevice */
 typedef ID3DLowLatencyDevice d3d_low_latency_device_iface;
@@ -5449,6 +5458,7 @@ struct d3d12_device
     d3d12_device_iface ID3D12Device_iface;
     d3d12_device_vkd3d_ext_iface ID3D12DeviceExt_iface;
     d3d12_dxvk_interop_device_iface ID3D12DXVKInteropDevice_iface;
+    d3d12_neurton_device_iface ID3D12DeviceNeurton_iface;
     d3d_low_latency_device_iface ID3DLowLatencyDevice_iface;
     IAmdExtAntiLagApi IAmdExtAntiLagApi_iface;
     ID3D12DeviceConfiguration1 ID3D12DeviceConfiguration1_iface;

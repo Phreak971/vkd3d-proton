@@ -1255,14 +1255,15 @@ static void vkd3d_memory_allocation_free(const struct vkd3d_memory_allocation *a
     if (allocation->flags & VKD3D_ALLOCATION_FLAG_GLOBAL_BUFFER)
         VK_CALL(vkDestroyBuffer(device->vk_device, allocation->resource.vk_buffer, NULL));
 
-    vkd3d_free_device_memory(device, &allocation->device_allocation);
+    if (!(allocation->flags & VKD3D_ALLOCATION_FLAG_EXTERNAL_MEMORY))
+        vkd3d_free_device_memory(device, &allocation->device_allocation);
 }
 
 static bool vkd3d_is_imported_allocation(const struct vkd3d_allocate_memory_info *info)
 {
     const VkBaseInStructure *next = info->pNext;
 
-    if (info->host_ptr)
+    if (info->host_ptr || info->external_memory)
         return true;
 
     while (next)
@@ -1362,7 +1363,7 @@ static HRESULT vkd3d_memory_allocation_init(struct vkd3d_memory_allocation *allo
      * we must not look at heap_flags, since we might end up noping out
      * the memory types we want to allocate with. */
     type_mask = memory_requirements.memoryTypeBits;
-    if (!(info->flags & VKD3D_ALLOCATION_FLAG_DEDICATED))
+    if (!(info->flags & VKD3D_ALLOCATION_FLAG_DEDICATED) && !info->external_memory)
         type_mask &= vkd3d_select_memory_types(device, &info->heap_properties, info->heap_flags, false);
 
     /* Allocate actual backing storage */
@@ -1432,7 +1433,24 @@ static HRESULT vkd3d_memory_allocation_init(struct vkd3d_memory_allocation *allo
         vk_prepend_struct(&flags_info, &priority_info);
     }
 
-    if (host_ptr)
+    if (info->external_memory)
+    {
+        if (!(type_mask & (1u << info->external_memory_type)))
+        {
+            ERR("External memory type %u is not usable for this allocation (mask %#x).\n",
+                    info->external_memory_type, type_mask);
+            hr = E_INVALIDARG;
+        }
+        else
+        {
+            allocation->device_allocation.vk_memory = info->external_memory;
+            allocation->device_allocation.vk_memory_type = info->external_memory_type;
+            allocation->device_allocation.size = memory_requirements.size;
+            allocation->flags |= VKD3D_ALLOCATION_FLAG_EXTERNAL_MEMORY;
+            hr = S_OK;
+        }
+    }
+    else if (host_ptr)
     {
         hr = vkd3d_import_host_memory(device, host_ptr, memory_requirements.size,
                 type_flags, type_mask, &flags_info, &allocation->device_allocation);
@@ -1457,7 +1475,15 @@ static HRESULT vkd3d_memory_allocation_init(struct vkd3d_memory_allocation *allo
     /* Map memory if the allocation was requested to be host-visible,
      * but do not map if the allocation was meant to be device-local
      * since that may negatively impact performance. */
-    if (host_ptr)
+    if (info->external_memory)
+    {
+        if (host_ptr)
+        {
+            allocation->flags |= VKD3D_ALLOCATION_FLAG_CPU_ACCESS;
+            allocation->cpu_address = host_ptr;
+        }
+    }
+    else if (host_ptr)
     {
         /* D3D12 expects us to forward the host pointer as-is. Map the memory
          * region anyway so that calling Flush/Invalidate becomes legal, but
@@ -2021,7 +2047,7 @@ static bool vkd3d_memory_info_allow_suballocate(struct d3d12_device *device,
         const struct vkd3d_allocate_memory_info *info)
 {
     /* pNext implies dedicated allocation or similar. Host pointer implies external memory import. */
-    if (info->pNext || info->host_ptr)
+    if (info->pNext || info->host_ptr || info->external_memory)
         return false;
 
     /* We must never suballocate these. */
@@ -2151,6 +2177,8 @@ HRESULT vkd3d_allocate_heap_memory(struct d3d12_device *device, struct vkd3d_mem
     alloc_info.heap_properties = info->heap_desc.Properties;
     alloc_info.heap_flags = info->heap_desc.Flags;
     alloc_info.host_ptr = info->host_ptr;
+    alloc_info.external_memory = info->external_memory;
+    alloc_info.external_memory_type = info->external_memory_type;
     alloc_info.vk_memory_priority = info->vk_memory_priority;
     alloc_info.explicit_global_buffer_usage = info->explicit_global_buffer_usage;
 

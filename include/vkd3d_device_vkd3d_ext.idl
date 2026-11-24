@@ -192,3 +192,18 @@ interface ID3D12ExtDummyInterface
     /* This is to keep MSVC compilation happy. */
     void dummy(void);
 }
+
+[
+    uuid(7c4f2a91-3b6e-4d58-9a1f-5e2d8c0b4a17),
+    object,
+    local,
+    pointer_default(unique)
+]
+interface ID3D12DeviceNeurton : IUnknown
+{
+    /* Wraps Vulkan memory the caller allocated on this device in a buffer heap.
+     * The heap does not own the memory and never clears it. */
+    HRESULT OpenHeapFromVkMemory(VkDeviceMemory memory, UINT32 memory_type, UINT64 size, void *cpu_address,
+            REFIID riid, void **heap);
+}
+

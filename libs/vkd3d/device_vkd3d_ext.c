@@ -1117,3 +1117,72 @@ CONST_VTBL struct IAmdExtAntiLagApiVtbl d3d_amd_ext_anti_lag_vtbl =
     /* IAmdExtAntiLag methods */
     d3d12_amd_ext_anti_lag_UpdateAntiLagState
 };
+
+static inline struct d3d12_device *d3d12_device_from_ID3D12DeviceNeurton(d3d12_neurton_device_iface *iface)
+{
+    return CONTAINING_RECORD(iface, struct d3d12_device, ID3D12DeviceNeurton_iface);
+}
+
+static ULONG STDMETHODCALLTYPE d3d12_neurton_device_AddRef(d3d12_neurton_device_iface *iface)
+{
+    return d3d12_device_add_ref(d3d12_device_from_ID3D12DeviceNeurton(iface));
+}
+
+static ULONG STDMETHODCALLTYPE d3d12_neurton_device_Release(d3d12_neurton_device_iface *iface)
+{
+    return d3d12_device_release(d3d12_device_from_ID3D12DeviceNeurton(iface));
+}
+
+static HRESULT STDMETHODCALLTYPE d3d12_neurton_device_QueryInterface(d3d12_neurton_device_iface *iface,
+        REFIID iid, void **out)
+{
+    struct d3d12_device *device = d3d12_device_from_ID3D12DeviceNeurton(iface);
+    return d3d12_device_QueryInterface(&device->ID3D12Device_iface, iid, out);
+}
+
+static HRESULT STDMETHODCALLTYPE d3d12_neurton_device_OpenHeapFromVkMemory(d3d12_neurton_device_iface *iface,
+        VkDeviceMemory memory, UINT32 memory_type, UINT64 size, void *cpu_address, REFIID riid, void **heap)
+{
+    struct d3d12_device *device = d3d12_device_from_ID3D12DeviceNeurton(iface);
+    struct d3d12_heap *object;
+    D3D12_HEAP_DESC heap_desc;
+    HRESULT hr;
+
+    TRACE("iface %p, memory %#"PRIx64", memory_type %u, size %#"PRIx64", cpu_address %p, riid %s, heap %p.\n",
+            iface, (uint64_t)memory, memory_type, size, cpu_address, debugstr_guid(riid), heap);
+
+    if (!memory || !size || memory_type >= device->memory_properties.memoryTypeCount || !heap)
+        return E_INVALIDARG;
+
+    memset(&heap_desc, 0, sizeof(heap_desc));
+    heap_desc.SizeInBytes = size;
+    heap_desc.Alignment = D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT;
+    heap_desc.Flags = D3D12_HEAP_FLAG_ALLOW_ONLY_BUFFERS | D3D12_HEAP_FLAG_CREATE_NOT_ZEROED;
+    heap_desc.Properties.Type = D3D12_HEAP_TYPE_CUSTOM;
+    heap_desc.Properties.CPUPageProperty = cpu_address ? D3D12_CPU_PAGE_PROPERTY_WRITE_BACK
+            : D3D12_CPU_PAGE_PROPERTY_NOT_AVAILABLE;
+    heap_desc.Properties.MemoryPoolPreference = (device->memory_properties.memoryTypes[memory_type].propertyFlags
+            & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) && !cpu_address ? D3D12_MEMORY_POOL_L1 : D3D12_MEMORY_POOL_L0;
+    heap_desc.Properties.CreationNodeMask = 1;
+    heap_desc.Properties.VisibleNodeMask = 1;
+
+    if (FAILED(hr = d3d12_heap_create_from_vk_memory(device, &heap_desc, memory, memory_type, cpu_address, &object)))
+    {
+        *heap = NULL;
+        return hr;
+    }
+
+    return return_interface(&object->ID3D12Heap_iface, &IID_ID3D12Heap, riid, heap);
+}
+
+CONST_VTBL struct ID3D12DeviceNeurtonVtbl d3d12_neurton_device_vtbl =
+{
+    /* IUnknown methods */
+    d3d12_neurton_device_QueryInterface,
+    d3d12_neurton_device_AddRef,
+    d3d12_neurton_device_Release,
+
+    /* ID3D12DeviceNeurton methods */
+    d3d12_neurton_device_OpenHeapFromVkMemory,
+};
+

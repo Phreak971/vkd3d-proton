@@ -290,7 +290,7 @@ static HRESULT validate_heap_desc(struct d3d12_device *device, const D3D12_HEAP_
 }
 
 static HRESULT d3d12_heap_init(struct d3d12_heap *heap, struct d3d12_device *device,
-        const D3D12_HEAP_DESC *desc, void* host_address)
+        const D3D12_HEAP_DESC *desc, void* host_address, VkDeviceMemory external_memory, uint32_t external_memory_type)
 {
     struct vkd3d_allocate_heap_memory_info alloc_info;
     HRESULT hr;
@@ -319,6 +319,8 @@ static HRESULT d3d12_heap_init(struct d3d12_heap *heap, struct d3d12_device *dev
     memset(&alloc_info, 0, sizeof(alloc_info));
     alloc_info.heap_desc = heap->desc;
     alloc_info.host_ptr = host_address;
+    alloc_info.external_memory = external_memory;
+    alloc_info.external_memory_type = external_memory_type;
 
     if ((alloc_info.heap_desc.Flags & D3D12_HEAP_FLAG_DENY_BUFFERS) &&
             device->d3d12_caps.options.ResourceHeapTier >= D3D12_RESOURCE_HEAP_TIER_2)
@@ -399,13 +401,34 @@ HRESULT d3d12_heap_create(struct d3d12_device *device, const D3D12_HEAP_DESC *de
     if (!(object = vkd3d_malloc(sizeof(*object))))
         return E_OUTOFMEMORY;
 
-    if (FAILED(hr = d3d12_heap_init(object, device, desc, host_address)))
+    if (FAILED(hr = d3d12_heap_init(object, device, desc, host_address, VK_NULL_HANDLE, 0)))
     {
         vkd3d_free(object);
         return hr;
     }
 
     TRACE("Created heap %p.\n", object);
+
+    *heap = object;
+    return S_OK;
+}
+
+HRESULT d3d12_heap_create_from_vk_memory(struct d3d12_device *device, const D3D12_HEAP_DESC *desc,
+        VkDeviceMemory memory, uint32_t memory_type, void *cpu_address, struct d3d12_heap **heap)
+{
+    struct d3d12_heap *object;
+    HRESULT hr;
+
+    if (!(object = vkd3d_malloc(sizeof(*object))))
+        return E_OUTOFMEMORY;
+
+    if (FAILED(hr = d3d12_heap_init(object, device, desc, cpu_address, memory, memory_type)))
+    {
+        vkd3d_free(object);
+        return hr;
+    }
+
+    TRACE("Created heap %p over caller memory %#"PRIx64".\n", object, (uint64_t)memory);
 
     *heap = object;
     return S_OK;

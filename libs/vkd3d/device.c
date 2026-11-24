@@ -4478,6 +4478,13 @@ HRESULT STDMETHODCALLTYPE d3d12_device_QueryInterface(d3d12_device_iface *iface,
         return S_OK;
     }
 
+    if (IsEqualGUID(riid, &IID_ID3D12DeviceNeurton))
+    {
+        d3d12_device_add_ref(device);
+        *object = &device->ID3D12DeviceNeurton_iface;
+        return S_OK;
+    }
+
     if (IsEqualGUID(riid, &IID_ID3DLowLatencyDevice))
     {
         d3d12_low_latency_device_AddRef(&device->ID3DLowLatencyDevice_iface);
@@ -10379,6 +10386,7 @@ static void d3d12_device_replace_vtable(struct d3d12_device *device)
 
 extern CONST_VTBL struct ID3D12DeviceExt2Vtbl d3d12_device_vkd3d_ext_vtbl;
 extern CONST_VTBL struct ID3D12DXVKInteropDevice3Vtbl d3d12_dxvk_interop_device_vtbl;
+extern CONST_VTBL struct ID3D12DeviceNeurtonVtbl d3d12_neurton_device_vtbl;
 extern CONST_VTBL struct ID3DLowLatencyDeviceVtbl d3d_low_latency_device_vtbl;
 extern CONST_VTBL struct IAmdExtAntiLagApiVtbl d3d_amd_ext_anti_lag_vtbl;
 
@@ -10472,6 +10480,7 @@ static HRESULT d3d12_device_init(struct d3d12_device *device,
 
     device->ID3D12DeviceExt_iface.lpVtbl = &d3d12_device_vkd3d_ext_vtbl;
     device->ID3D12DXVKInteropDevice_iface.lpVtbl = &d3d12_dxvk_interop_device_vtbl;
+    device->ID3D12DeviceNeurton_iface.lpVtbl = &d3d12_neurton_device_vtbl;
     device->ID3DLowLatencyDevice_iface.lpVtbl = &d3d_low_latency_device_vtbl;
     device->IAmdExtAntiLagApi_iface.lpVtbl = &d3d_amd_ext_anti_lag_vtbl;
     device->ID3D12DeviceConfiguration1_iface.lpVtbl = &d3d12_device_configuration_vtbl;
