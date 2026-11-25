@@ -668,6 +668,20 @@ static bool d3d12_device_should_use_image_compression_control(struct d3d12_devic
             device->device_info.vulkan_1_2_properties.driverID != VK_DRIVER_ID_NVIDIA_PROPRIETARY;
 }
 
+static bool d3d12_resource_desc_is_storage_depth(const D3D12_RESOURCE_DESC1 *desc)
+{
+    const D3D12_RESOURCE_FLAGS flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL | D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+
+    return (desc->Flags & flags) == flags;
+}
+
+/* Vulkan has no storage depth images, but RADV lays an uncompressed one out as the hardware's shader writes expect. */
+static bool d3d12_device_supports_storage_depth(struct d3d12_device *device)
+{
+    return device->device_info.vulkan_1_2_properties.driverID == VK_DRIVER_ID_MESA_RADV &&
+            d3d12_device_should_use_image_compression_control(device);
+}
+
 static VkImageUsageFlags vkd3d_filter_supported_image_usage(VkImageUsageFlags usage, VkFormatFeatureFlags2 features)
 {
     if (!(features & VK_FORMAT_FEATURE_2_TRANSFER_SRC_BIT))
@@ -761,6 +775,12 @@ static HRESULT vkd3d_get_image_create_info(struct d3d12_device *device,
         return E_NOTIMPL;
     }
 
+    if (d3d12_resource_desc_is_storage_depth(desc) && !d3d12_device_supports_storage_depth(device))
+    {
+        ERR("ALLOW_UNORDERED_ACCESS and ALLOW_DEPTH_STENCIL is not supported by this driver.\n");
+        return E_NOTIMPL;
+    }
+
     memset(create_info, 0, sizeof(*create_info));
     image_info->sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
 
@@ -782,6 +802,9 @@ static HRESULT vkd3d_get_image_create_info(struct d3d12_device *device,
      * What we really "want" here is a way to say that layouts don't matter, and disabling compression
      * is the pragmatic way to work around this, but there's only so much we can do when faced with bugged apps. */
     if (!(desc->Flags & (D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL | D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET)))
+        disable_compression = true;
+
+    if (d3d12_resource_desc_is_storage_depth(desc))
         disable_compression = true;
 
     /* Can be a performance tweak, or app workaround.
@@ -1111,6 +1134,7 @@ static HRESULT vkd3d_get_image_create_info(struct d3d12_device *device,
          * Read/WriteFromSubresource essentialy require simultaneous access. */
         if (d3d12_device_supports_unified_layouts(device) ||
                 (desc->Flags & D3D12_RESOURCE_FLAG_ALLOW_SIMULTANEOUS_ACCESS) ||
+                d3d12_resource_desc_is_storage_depth(desc) ||
                 (image_info->tiling == VK_IMAGE_TILING_LINEAR) ||
                 (heap_properties && is_cpu_accessible_heap(heap_properties)))
         {
@@ -2842,12 +2866,6 @@ static HRESULT d3d12_validate_resource_flags(D3D12_RESOURCE_FLAGS flags)
         return E_INVALIDARG;
     }
 
-    if ((flags & D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS) && (flags & D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL))
-    {
-        ERR("ALLOW_UNORDERED_ACCESS and ALLOW_DEPTH_STENCIL is not allowed.\n");
-        return E_INVALIDARG;
-    }
-
     if ((flags & D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET) && (flags & D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL))
     {
         ERR("ALLOW_RENDER_TARGET and ALLOW_DEPTH_STENCIL is not allowed.\n");
@@ -2955,7 +2973,7 @@ static HRESULT d3d12_resource_validate_usage(const D3D12_RESOURCE_DESC1 *desc,
     UINT i;
 
     /* Validate that special usage flags are satisfied. */
-    if (desc->Flags & D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS)
+    if ((desc->Flags & D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS) && !d3d12_resource_desc_is_storage_depth(desc))
         required_image_flags |= VK_FORMAT_FEATURE_STORAGE_IMAGE_BIT;
     if (desc->Flags & D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET)
         required_image_flags |= VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT;
