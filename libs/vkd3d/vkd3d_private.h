@@ -5209,7 +5209,7 @@ typedef ID3D12DeviceExt2 d3d12_device_vkd3d_ext_iface;
 
 /* ID3D12DXVKInteropDevice */
 typedef ID3D12DXVKInteropDevice3 d3d12_dxvk_interop_device_iface;
-typedef ID3D12DeviceNeurton1 d3d12_neurton_device_iface;
+typedef ID3D12DeviceNeurton2 d3d12_neurton_device_iface;
 
 /* ID3DLowLatencyDevice */
 typedef ID3DLowLatencyDevice d3d_low_latency_device_iface;
@@ -5466,6 +5466,7 @@ struct d3d12_device
     d3d12_device_vkd3d_ext_iface ID3D12DeviceExt_iface;
     d3d12_dxvk_interop_device_iface ID3D12DXVKInteropDevice_iface;
     d3d12_neurton_device_iface ID3D12DeviceNeurton_iface;
+    bool console_layouts;
     d3d_low_latency_device_iface ID3DLowLatencyDevice_iface;
     IAmdExtAntiLagApi IAmdExtAntiLagApi_iface;
     ID3D12DeviceConfiguration1 ID3D12DeviceConfiguration1_iface;

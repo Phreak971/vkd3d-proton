@@ -220,3 +220,16 @@ interface ID3D12DeviceNeurton1 : ID3D12DeviceNeurton
             REFIID riid, void **resource);
 }
 
+[
+    uuid(9a3c5e17-62d4-4b8f-a1c3-0d7e94b2f658),
+    object,
+    local,
+    pointer_default(unique)
+]
+interface ID3D12DeviceNeurton2 : ID3D12DeviceNeurton1
+{
+    /* Every texture created afterwards stays in the GENERAL layout, as memory with no layouts would:
+     * renders, copies and shader accesses that nothing transitions between see each other. */
+    HRESULT UseConsoleLayouts();
+}
+

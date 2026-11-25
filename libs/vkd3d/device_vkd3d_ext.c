@@ -1198,7 +1198,17 @@ static HRESULT STDMETHODCALLTYPE d3d12_neurton_device_CreateBufferOnBuffer(d3d12
     return return_interface(&object->ID3D12Resource_iface, &IID_ID3D12Resource, riid, resource);
 }
 
-CONST_VTBL struct ID3D12DeviceNeurton1Vtbl d3d12_neurton_device_vtbl =
+static HRESULT STDMETHODCALLTYPE d3d12_neurton_device_UseConsoleLayouts(d3d12_neurton_device_iface *iface)
+{
+    struct d3d12_device *device = d3d12_device_from_ID3D12DeviceNeurton(iface);
+
+    TRACE("iface %p.\n", iface);
+
+    device->console_layouts = true;
+    return S_OK;
+}
+
+CONST_VTBL struct ID3D12DeviceNeurton2Vtbl d3d12_neurton_device_vtbl =
 {
     /* IUnknown methods */
     d3d12_neurton_device_QueryInterface,
@@ -1210,5 +1220,8 @@ CONST_VTBL struct ID3D12DeviceNeurton1Vtbl d3d12_neurton_device_vtbl =
 
     /* ID3D12DeviceNeurton1 methods */
     d3d12_neurton_device_CreateBufferOnBuffer,
+
+    /* ID3D12DeviceNeurton2 methods */
+    d3d12_neurton_device_UseConsoleLayouts,
 };
 

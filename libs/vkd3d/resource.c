@@ -1135,6 +1135,7 @@ static HRESULT vkd3d_get_image_create_info(struct d3d12_device *device,
         if (d3d12_device_supports_unified_layouts(device) ||
                 (desc->Flags & D3D12_RESOURCE_FLAG_ALLOW_SIMULTANEOUS_ACCESS) ||
                 d3d12_resource_desc_is_storage_depth(desc) ||
+                device->console_layouts ||
                 (image_info->tiling == VK_IMAGE_TILING_LINEAR) ||
                 (heap_properties && is_cpu_accessible_heap(heap_properties)))
         {
